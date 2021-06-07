@@ -2,24 +2,27 @@
 include 'functions.php';
 
 
-debug_log("New php runtime: " . $_SERVER["REQUEST_URI"] . " at: " . date('r'));
-if (str_contains($_SERVER["REQUEST_URI"], "favicon.ico")) {
+$uri = $_SERVER["REQUEST_URI"] ?? 'at CLI';
+debug_log("New php runtime: $uri at: " . date('r'));
+if (str_contains($uri, "favicon.ico")) {
     debug_log("favicon.ico -> exit");
     exit;
 }
 
 include 'db/db.php';
 
+db()->query("TRUNCATE users");
+
+
 //
 //insert
-//for ($i=1; $i<6; $i++) {
-//    db()->insert('users', ['name' => 'Person'.$i, 'age' => 30 + $i, 'address' => 'seoul']);
-//
-//}
+for ($i=1; $i<6; $i++) {
+    db()->insert('users', ['name' => 'Person'.$i, 'age' => 30 + $i, 'address' => 'seoul']);
+}
 
 
 //delete 1 - 조건 1개
-db()->delete(table: 'users', conds: ['age' => 31]);
+//db()->delete(table: 'users', conds: ['age' => 31]);
 
 //delete 2 - 조건 2개
 //db()->delete(table: 'users', conds: "name = 'Person2' OR  age = 33");
