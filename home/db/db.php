@@ -1,5 +1,7 @@
 <?php
 
+
+
 class MyDB
 {
     public mysqli $connection;
@@ -16,7 +18,7 @@ class MyDB
 
     private function handleError(string $msg, string $sql = '')
     {
-        $error_message = '== Mysql error: ' . $msg . $sql;
+        $error_message = ' ------ Mysql error: ' . $msg ."\n" . $sql;
         debug_log($error_message);
         throw new RuntimeException($error_message);
     }
@@ -41,7 +43,7 @@ class MyDB
     }
 
 
-    public function parseRecord($record) {
+    public function parseRecord(array $record, string $type = 'insert') {
         // 입력 받은 배열에서 필드와 값을 분리시켜 각각 $fields 와 $values 로 저장.
 
         $fields = [];
@@ -52,10 +54,17 @@ class MyDB
             $values[] = $v;
         }
 
-
-        $return_fields = implode(',', $fields);
-        $return_values = implode(",", array_fill(0, count($values), '?'));
-        
+        if ( $type == 'insert' ) {
+            $return_fields = implode(',', $fields);
+            $return_values = implode(",", array_fill(0, count($values), '?'));
+        } else if ( $type == 'update' || $type == 'where' ) {
+            $expressions = [];
+            foreach( $fields as $field ) {
+                $expressions[] = "$field=?";
+            }
+            $return_fields = implode(" AND ", $expressions);
+            $return_values = $values;
+        }
         return [ 'fields' => $return_fields, 'values' => $return_values ];
     }
     /**
@@ -109,36 +118,102 @@ class MyDB
         }
     }
 
-    public function update(string $table, array $conds): bool
+    public function update(string $table, array $record, array $conds): bool
     {
-//        list($fields, $where, $where_values) = $this->parseRecord
-        $sql = "UPDATE $table SET name= ? WHERE ";
+        
         try {
+            
             $stmt = $this->connection->stmt_init();
+            
+            $update = $this->parseRecord( $record, 'update' );
+            $where = $this->parseRecord( $conds, 'where' );
+            $sql = "UPDATE $table SET $update[fields] WHERE $where[fields]";
             $stmt->prepare($sql);
-            $types = $this->types($conds);
-//            $stmt->bind_param($types, ...$conds);
-            $stmt->bind_param($types, $conds['age']);
+            $re = $stmt->prepare($sql);
+            if (!$re) {
+                $this->handleError($this->connection->error, $sql);
+            }
+            $values = array_merge( array_values($record), array_values($conds));
+
+            $types = $this->types($values);
+            $re = $stmt->bind_param($types, ...$values);
+
             return $stmt->execute();
+
+            
         } catch (mysqli_sql_exception $e) {
-            $this->handleError($e->__toString(), $sql);
-            return false;
+            $this->handleError($e->__toString(), "SQL: " . $sql);
         }
+
     }
 
 
-    public function rows(string $table, array $conds)
+    public function rows(string $table, array $conds = [], $select = '*')
     {
-        $sql = "SELECT * FORM $table";
+        
+        
         try {
+            
             $stmt = $this->connection->stmt_init();
-            $stmt->prepare($sql);
-            $types = $this->types($conds);
+            if ( $conds ) {
+                $parsed = $this->parseRecord( $conds, 'where' );
+                $sql = "SELECT $select FROM $table WHERE $parsed[fields]";
+                $stmt->prepare($sql);
+                $re = $stmt->prepare($sql);
+                if (!$re) {
+                    $this->handleError($this->connection->error, $sql);
+                }
+                $values = array_values($conds);
+                $types = $this->types($values);
+                $re = $stmt->bind_param($types, ...$values);
+            } else {
+                $sql = "SELECT $select FROM $table";
+                $stmt->prepare($sql);
+            }
+
+            
+            $stmt->execute();
+
+            $result = $stmt->get_result(); // get the mysqli result
+            if ( $result === false ) {
+
+                $this->handleError("SQL ERROR on row()", $sql);
+                return [];
+            }
+            /* fetch associative array */
+            $rets = [];
+            while ($row = $result->fetch_assoc()) {
+                $rets[] = $row;
+            }
+            return $rets;
         } catch (mysqli_sql_exception $e) {
-            $this->handleError($e->__toString(), $sql);
+            $this->handleError($e->__toString(), "SQL: " . $sql);
         }
     }
 
+    
+    
+
+    public function row(string $table, array $conds = [], $select = '*')
+    {
+        $rows = $this->rows($table, $conds, $select);
+        if ( ! $rows ) return [];
+        return $rows[0];
+    }
+
+    public function column(string $table, array $conds = [], $select = '*') {
+        $row = $this->row( $table, $conds, $select );
+        if ( ! $row ) return null;
+    
+        return $row[$select];
+    }
+
+    public function count(string $table, array $conds = []) {
+        return $this->column($table, $conds, "COUNT(*)");
+    }
+
+
+    
 
     /**
      * @param $val

@@ -1,1 +1,1 @@
-{"version":1,"defects":[],"times":{"BasicTest::testPushAndPop":0}}
+{"version":1,"defects":{"BasicTest::testPushAndPop":4,"BasicTest::testInsert":3,"BasicTest::testUpdate":3},"times":{"BasicTest::testPushAndPop":0.009,"BasicTest::testInsert":0.011,"BasicTest::testUpdate":0.012}}

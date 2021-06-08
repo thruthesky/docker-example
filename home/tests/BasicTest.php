@@ -1,20 +1,40 @@
 <?php
-declare(strict_types=1);
+declare (strict_types = 1);
 
 use PHPUnit\Framework\TestCase;
 
+include '/docker/home/db/db.php';
+include '/docker/home/functions.php';
+
 final class BasicTest extends TestCase
 {
-    public function testPushAndPop(): void
+    public function testInsert(): void
     {
-        $stack = [];
-        $this->assertSame(0, count($stack));
-
-        array_push($stack, 'foo');
-        $this->assertSame('foo', $stack[count($stack) - 1]);
-        $this->assertSame(1, count($stack));
-
-        $this->assertSame('foo', array_pop($stack));
-        $this->assertSame(0, count($stack));
+        db()->query("TRUNCATE users");
+        db()->insert('users', ['name' => 'Person', 'age' => 30, 'address' => 'seoul']);
+        $rows = db()->rows('users');
+        $this->assertTrue(count($rows) === 1);
+        $rows = db()->rows('users', ['name' => 'Person']);
+        $this->assertTrue(count($rows) === 1);
+        db()->insert('users', ['name' => 'Person', 'age' => 30, 'address' => 'seoul']);
+        $rows = db()->rows('users');
+        $this->assertTrue(count($rows) === 2);
+        $this->assertTrue(db()->count('users') === 2);
     }
+
+    public function testUpdate(): void
+    {
+        db()->query("TRUNCATE users");
+        db()->insert('users', ['name' => 'You', 'age' => 30, 'address' => 'seoul']);
+        db()->insert('users', ['name' => 'Me', 'age' => 31, 'address' => 'seoul']);
+
+        $this->assertTrue(db()->count('users') == 2);
+
+        db()->update('users', ['name' => 'Jeo'], ['age' => 30]);
+
+        $this->assertTrue(db()->count('users', ['name' => 'You']) == 0);
+        $this->assertTrue(db()->count('users', ['name' => 'Jeo']) == 1);
+
+    }
+
 }

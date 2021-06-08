@@ -1,7 +1,6 @@
 <?php
 include 'functions.php';
 
-
 $uri = $_SERVER["REQUEST_URI"] ?? 'at CLI';
 debug_log("New php runtime: $uri at: " . date('r'));
 if (str_contains($uri, "favicon.ico")) {
@@ -13,13 +12,14 @@ include 'db/db.php';
 
 db()->query("TRUNCATE users");
 
-
 //
 //insert
-for ($i=1; $i<6; $i++) {
-    db()->insert('users', ['name' => 'Person'.$i, 'age' => 30 + $i, 'address' => 'seoul']);
+for ($i = 1; $i < 6; $i++) {
+    db()->insert('users', ['name' => 'Person' . $i, 'age' => 30 + $i, 'address' => 'seoul']);
 }
 
+$rows = db()->rows("users", ['address' => 'seoul']);
+print_r($rows);
 
 //delete 1 - 조건 1개
 //db()->delete(table: 'users', conds: ['age' => 31]);
@@ -58,7 +58,3 @@ for ($i=1; $i<6; $i++) {
 ////select 조건에 맞는 데이터 중 특정 컬럼 값만 가져오기 - 조건 3개 이상
 //db()->column();
 //
-
-
-
-
