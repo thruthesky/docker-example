@@ -37,4 +37,20 @@ final class BasicTest extends TestCase
 
     }
 
+    public function testDelete(): void{
+        db()->query("TRUNCATE users");
+        db()->insert('users', ['name' => 'You', 'age' => 30, 'address' => 'seoul']);
+        db()->insert('users', ['name' => 'Me', 'age' => 31, 'address' => 'seoul']);
+
+        $this->assertTrue(db()->count('users') == 2);
+
+
+
+        db()->delete('users', ['name'=>'You']);
+        db()->delete('users', ['name'=>'Me', 'age'=>31]);
+
+        $this->assertTrue(db()->count('users') == 0);
+    }
+
+
 }

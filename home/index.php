@@ -1,7 +1,8 @@
 <?php
 include 'functions.php';
-
+//
 $uri = $_SERVER["REQUEST_URI"] ?? 'at CLI';
+echo $uri;
 debug_log("New php runtime: $uri at: " . date('r'));
 if (str_contains($uri, "favicon.ico")) {
     debug_log("favicon.ico -> exit");
@@ -21,3 +22,5 @@ if (!isset($_REQUEST['route'])) {
 } else if ($_REQUEST['route'] == 'user.login') {
     include 'controller/user/login.php';
 }
+
+
